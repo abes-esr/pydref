@@ -42,7 +42,7 @@ class Pydref(object):
                     params=params,
                     headers=None,
                     timeout=self.timeout)
-        if r.status_code == 200:
+        if r.status_code == 200 and r.text:
             return r.json()
         return {"error": r.text}
     
