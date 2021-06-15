@@ -94,7 +94,18 @@ class Pydref(object):
         
         all_idref = self.get_idref(query)
         if len(all_idref) == 1:
-            return all_idref[0]
+            res = all_idref[0].copy()
+            res['status'] = 'found'
+            res['nb_homonyms'] = len(all_idref)
+            return res
+        else:
+            res = {}
+            res['nb_homonyms'] = len(all_idref)
+            if len(all_idref) == 0:
+                res['status'] = 'not_found'
+            elif len(all_idref) > 1:
+                res['status'] = 'not_found_ambiguous'
+            return res
         return {}
 
     def keep_digits(self: object, x: str) -> str:
