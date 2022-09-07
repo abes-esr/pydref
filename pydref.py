@@ -1,6 +1,23 @@
 import requests
+import unicodedata
+import string
 from bs4 import BeautifulSoup
 import datetime
+
+def strip_accents(w: str) -> str:
+    """Normalize accents and stuff in string."""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', w)
+        if unicodedata.category(c) != 'Mn')
+
+
+def delete_punct(w: str) -> str:
+    """Delete all punctuation in a string."""
+    return w.lower().translate(
+        str.maketrans(string.punctuation, len(string.punctuation) * ' '))
+
+def normalize(x):
+    return strip_accents(delete_punct(x)).lower().strip()
 
 class Pydref(object):
     """ Wrapper around the PubMed API.
@@ -57,7 +74,7 @@ class Pydref(object):
         return r.text
     
     
-    def get_idref(self: object, query: str):
+    def get_idref(self: object, query: str, living_scientific = True, exact_fullname = True):
         """ Method that first permorf a query and then parses the main infos of the results
         """
         
@@ -73,15 +90,38 @@ class Pydref(object):
                 person_name = self.get_name_from_idref_notice(soup)
                 person['last_name'] = person_name.get("last_name")
                 person['first_name'] = person_name.get("first_name")
+                person['full_name'] = f"{person['first_name']} {person['last_name']}".strip()
+                person['full_name2'] = f"{person['last_name']} {person['first_name']}".strip()
+                exact_fullname = [normalize(person['full_name']), normalize(person['full_name2'])]
+
+                if normalize(query) not in exact_fullname:
+                    print('no exact fullname match')
+                    continue
                 birth, death = self.get_birth_and_death_date_from_idref_notice(soup)
                 if birth:
                     person['birth_date'] = birth
                 if death:
                     person['death_date'] = death
 
+                if living_scientific and birth and int(birth[0:4]) < 1900:
+                    print(f'skipping birth date {birth}')
+                    continue
+
                 identifiers = self.get_identifiers_from_idref_notice(soup)
                 person['identifiers'] = identifiers
+
+                skip = False
                 person['description'] = self.get_description_from_idref_notice(soup)
+                if living_scientific:
+                    for d in person['description']:
+                        for w in ['theater', 'theatre', 'poet', 'dramaturge']:
+                            if w in d.lower():
+                                skip = True
+                                print(f'skipping {d}')
+                                break
+                if skip:
+                    continue
+
                 person['gender'] = self.get_gender(soup)
 
                 possible_match.append(person)
