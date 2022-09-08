@@ -4,6 +4,8 @@ import string
 from bs4 import BeautifulSoup
 import datetime
 
+NOT_SCIENTIST_TOKEN = ['chanteur', 'dramaturge', 'journalist', 'poete', 'theater', 'theatre']
+
 def strip_accents(w: str) -> str:
     """Normalize accents and stuff in string."""
     return ''.join(
@@ -74,7 +76,7 @@ class Pydref(object):
         return r.text
     
     
-    def get_idref(self: object, query: str, living_scientific = True, exact_fullname = True):
+    def get_idref(self: object, query: str, min_birth_year, min_death_year, is_scientific, exact_fullname):
         """ Method that first permorf a query and then parses the main infos of the results
         """
         
@@ -103,8 +105,12 @@ class Pydref(object):
                 if death:
                     person['death_date'] = death
 
-                if living_scientific and birth and int(birth[0:4]) < 1900:
+                if birth and int(birth[0:4]) < min_birth_year:
                     print(f'skipping birth date {birth}')
+                    continue
+                
+                if death and int(death[0:4]) < min_death_year:
+                    print(f'skipping death date {death}')
                     continue
 
                 identifiers = self.get_identifiers_from_idref_notice(soup)
@@ -112,9 +118,9 @@ class Pydref(object):
 
                 skip = False
                 person['description'] = self.get_description_from_idref_notice(soup)
-                if living_scientific:
+                if is_scientific:
                     for d in person['description']:
-                        for w in ['theater', 'theatre', 'poet', 'dramaturge']:
+                        for w in NOT_SCIENTIST_TOKEN:
                             if w in d.lower():
                                 skip = True
                                 print(f'skipping {d}')
@@ -127,12 +133,12 @@ class Pydref(object):
                 possible_match.append(person)
         return possible_match
     
-    def identify(self: object, query: str):
+    def identify(self: object, query: str, min_birth_year = 1920, min_death_year = 2005, is_scientific = True, exact_fullname = True):
         """ Method that try to identify an idref from a simple input
             Return a match only if the solr engine gives exactly one result
         """
         
-        all_idref = self.get_idref(query)
+        all_idref = self.get_idref(query, min_birth_year, min_death_year, is_scientific, exact_fullname)
         if len(all_idref) == 1:
             res = all_idref[0].copy()
             res['status'] = 'found'
