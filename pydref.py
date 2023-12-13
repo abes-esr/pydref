@@ -19,6 +19,7 @@ def delete_punct(w: str) -> str:
         str.maketrans(string.punctuation, len(string.punctuation) * ' '))
 
 def normalize(x):
+    x = x.replace('\xa0', ' ')
     return strip_accents(delete_punct(x)).lower().strip()
 
 class Pydref(object):
@@ -69,7 +70,7 @@ class Pydref(object):
         """ Method that downloads the xml notice of a given idref
         """
         
-        r = requests.get("http://www.idref.fr/{}.xml".format(idref))
+        r = requests.get("https://www.idref.fr/{}.xml".format(idref))
         if r.status_code != 200:
             print("Error in getting notice {} : {}".format(idref, r.text))
             return {}
@@ -97,7 +98,7 @@ class Pydref(object):
                 exact_fullname = [normalize(person['full_name']), normalize(person['full_name2'])]
 
                 if normalize(query) not in exact_fullname:
-                    print('no exact fullname match')
+                    print(f'no exact fullname match for {query} vs {exact_fullname}')
                     continue
                 birth, death = self.get_birth_and_death_date_from_idref_notice(soup)
                 if birth:
