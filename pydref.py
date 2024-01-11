@@ -69,12 +69,15 @@ class Pydref(object):
     def get_idref_notice(self: object, idref: str):
         """ Method that downloads the xml notice of a given idref
         """
-        
-        r = requests.get("https://www.idref.fr/{}.xml".format(idref))
-        if r.status_code != 200:
-            print("Error in getting notice {} : {}".format(idref, r.text))
+        try: 
+            r = requests.get("https://www.idref.fr/{}.xml".format(idref))
+            if r.status_code != 200:
+                print("Error in getting notice {} : {}".format(idref, r.text))
+                return {}
+            return r.text
+        except:
+            print("Error in getting notice {}".format(idref))
             return {}
-        return r.text
     
     
     def get_idref(self: object, query: str, min_birth_year, min_death_year, is_scientific, exact_fullname):
@@ -89,6 +92,8 @@ class Pydref(object):
             if 'ppn_z' in d:
                 person = {'idref' : "idref{}".format(d['ppn_z'])}
                 notice = self.get_idref_notice(d['ppn_z'])
+                if not notice:
+                    continue
                 soup = BeautifulSoup(notice, 'lxml')
                 person_name = self.get_name_from_idref_notice(soup)
                 person['last_name'] = person_name.get("last_name")
