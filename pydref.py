@@ -3,8 +3,14 @@ import unicodedata
 import string
 from bs4 import BeautifulSoup
 import datetime
+from retry import retry
 
 NOT_SCIENTIST_TOKEN = ['chanteur', 'dramaturge', 'journalist', 'poete', 'theater', 'theatre']
+
+
+@retry(delay=200, tries=5)
+def get_url(url, params={}, headers={}, timeout=2):
+    return requests.get(url, params=params, headers=headers, timeout=timeout)
 
 def strip_accents(w: str) -> str:
     """Normalize accents and stuff in string."""
@@ -57,7 +63,7 @@ class Pydref(object):
                   'version': '2.2'
                   }
   
-        r = requests.get(
+        r = get_url(
                     "https://www.idref.fr/Sru/Solr",
                     params=params,
                     headers=None,
@@ -70,7 +76,7 @@ class Pydref(object):
         """ Method that downloads the xml notice of a given idref
         """
         try: 
-            r = requests.get("https://www.idref.fr/{}.xml".format(idref))
+            r = get_url("https://www.idref.fr/{}.xml".format(idref))
             if r.status_code != 200:
                 print("Error in getting notice {} : {}".format(idref, r.text))
                 return {}
