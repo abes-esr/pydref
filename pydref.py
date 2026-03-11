@@ -158,6 +158,7 @@ class Pydref(object):
             return res
         else:
             res = {}
+            res['potential_matches'] = all_idref
             res['nb_homonyms'] = len(all_idref)
             if len(all_idref) == 0:
                 res['status'] = 'not_found'
