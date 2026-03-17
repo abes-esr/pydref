@@ -104,6 +104,7 @@ class Pydref(object):
                 person_name = self.get_name_from_idref_notice(soup)
                 person['last_name'] = person_name.get("last_name")
                 person['first_name'] = person_name.get("first_name")
+                person['job'] = person_name.get("job")
                 person['full_name'] = f"{person['first_name']} {person['last_name']}".strip()
                 person['full_name2'] = f"{person['last_name']} {person['first_name']}".strip()
                 exact_fullname = [normalize(person['full_name']), normalize(person['full_name2'])]
@@ -198,16 +199,25 @@ class Pydref(object):
 
     def get_name_from_idref_notice(self: object, soup):
         """Get Name from notice."""
-        current_name, current_first_name = None, None
+        current_name, current_first_name, current_job, current_job2 = None, None, None, None
         for datafield in soup.find_all("datafield"):
             if (datafield.attrs['tag'] in ['200']):
-                current_name, current_first_name = '', ''
+                current_name, current_first_name, current_job = '', '', ''
                 for subfield in datafield.findAll("subfield"):
                     if subfield.attrs['code'] == 'a':
                         current_name = subfield.text
                     if subfield.attrs['code'] == 'b':
                         current_first_name = subfield.text
-        return {"last_name": current_name, "first_name": current_first_name}
+                    if subfield.attrs['code'] == 'c':
+                        current_job = subfield.text
+            if (datafield.attrs['tag'] in ['300']):
+                current_job2 = ''
+                for subfield in datafield.findAll("subfield"):
+                    if subfield.attrs['code'] == 'a':
+                        current_job2 = subfield.text
+            if current_job2 and (not current_job):
+                current_job = current_job2
+        return {"last_name": current_name, "first_name": current_first_name, "job": current_job}
 
     def get_birth_and_death_date_from_idref_notice(self: object, soup):
         """Get birth and death dates from notice."""
